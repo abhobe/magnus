@@ -1,0 +1,22 @@
+{
+  "name": "magnus",
+  "version": "1.0.0",
+  "description": "tennis magnus force simulator =============================",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/abhobe/magnus.git"
+  },
+  "author": "arjun",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/abhobe/magnus/issues"
+  },
+  "homepage": "https://github.com/abhobe/magnus#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
