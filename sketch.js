@@ -1,6 +1,6 @@
 // all lengths in meters
 
-let scl = 45; // set viewport size
+let scl = 40; // set viewport size
 let fr = 60; // 60hz display frequency
 
 let court = {w: 36, h: 5} // real-life court dims, scaled by scl
