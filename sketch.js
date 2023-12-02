@@ -1,27 +1,27 @@
+// all lengths in meters
 
-// Position Variables
-let scl = 30;
+let scl = 45; // set viewport size
+let fr = 60; // 60hz display frequency
 
-let fr = 60;
+let court = {w: 36, h: 5} // real-life court dims, scaled by scl
 
-let court = {w: 36, h: 5}
-
-// Drag force 
+// constants for drag
 let DENSITY = 1.293
 let DRAG_COEFF = 0.6
 let MASS = 0.056
 let RAD = 0.03
 let AREA = 3.14*RAD**2
 
-
-
 let objs = [];
 
-let paused = true;
+// speed + time controls
+let paused = false;
 let slowf = 10;
+let TIME = 0;
 
 function setup() {
   angleMode(DEGREES);
+  createCanvas(court.w*scl, court.h*scl);
   p = createVector(0,court.h-1);
   v = createVector(30*cos(7), -30*sin(7));
   a = createVector(0, 9.8);
@@ -29,52 +29,91 @@ function setup() {
   
   wInp = createInput('2300');
   wInp.position(10, 30);
-  wInp.size(40);
+  wInp.size(30);
   vInp = createInput('30');
   vInp.position(10, 50);
-  vInp.size(40);
-  tInp = createInput('10');
+  vInp.size(20);
+  tInp = createInput('7');
   tInp.position(10, 70);
   tInp.size(20);
-  
-  let pauseb = createButton('pause/start');
-  pauseb.position(90, 10);
+  hInp = createInput('1');
+  hInp.position(10, 90);
+  hInp.size(20);
+
+  let pauseb = createButton('pause');
+  pauseb.position(70, 10);
   pauseb.mousePressed(() => {
     paused = !paused;
   });
-  let resetb = createButton('reset/init');
+  let resetb = createButton('reset');
   resetb.position(10, 10);
-  resetb.mousePressed(() => {
-      v = createVector(int(vInp.value())*cos(int(tInp.value())), -1*int(vInp.value())*sin(int(tInp.value())));
-      w = int(wInp.value())*3.14/30
-      objs = [];
-      // Projectile Motion
-      objs.push(new Ball('b', p, v, a, w, color('blue'), false, false));
-    //Drag Forces
-  objs.push(new Ball('r', p, v, a, w, color('red'), true, false));
-  // Topspin
-  objs.push(new Ball('r', p, v, a, -w, color('green'), true, true));
-    //bottom spin
-  objs.push(new Ball('o', p, v, a, w, color('orange'), true, true));
-  });
-  
-  
-  
-  createCanvas(court.w*scl, court.h*scl);
+  resetb.mousePressed(newSession);
+
+  newSession();
   frameRate(fr)
   console.log(fr)
   fill(0);
+}
+
+function newSession() {
+  TIME=0;
+  p = createVector(0,court.h-float(hInp.value()));
+  v = createVector(int(vInp.value())*cos(float(tInp.value())), -1*float(vInp.value())*sin(float(tInp.value())));
+  w = float(wInp.value())*PI/30
+  objs = [];
+  // Projectile Motion
+  objs.push(new Ball('projectile', p, v, a, w, color('blue'), false, false));
+  //Drag Forces
+  objs.push(new Ball('drag', p, v, a, w, color('red'), true, false));
+  // Topspin
+  objs.push(new Ball('topspin', p, v, a, -w, color('green'), true, true));
+  //bottom spin
+  objs.push(new Ball('backspin', p, v, a, w, color('orange'), true, true));
 }
 
 function draw() {
   if (!paused) {
     background(255);
     fill(0);
-    stroke(0);
+    noStroke();
+    text("ω (rpm)", wInp.position().x+40, wInp.position().y+15);
+    text("v (m/s)", vInp.position().x+40, vInp.position().y+15);
+    text("θ (deg)", tInp.position().x+40, tInp.position().y+15);
+    text("h (m)",   hInp.position().x+40, hInp.position().y+15);
+    TIME += 1/(fr*slowf);
+
+    text(`t: ${round(TIME,2)} (s)`, hInp.position().x, 125);
     rect(width/2, height-scl, scl/5, scl)
+    
+    text('ball', 150, 15);
+    text('pos (m)', 250, 15);
+    text('v (m/s)', 350, 15);
+    text('a (m/s^2)', 450, 15);
+    text('a_drag (m/s^2))', 550, 15);
+    text('a_lift (m/s^2)', 650, 15);
+    text('t_stop (s)', 750, 15)
+
     for (let i = 0; i<objs.length;i++) {
-      objs[i].draw();
+      y = 40 + 25 * i;
+      obj = objs[i];
+      obj.draw();
+      noStroke();
+      text(`${obj.id}`, 150, y);
+      text(`(${round(obj.pos.x,2)}, ${round(court.h - obj.pos.y,2)})`, 250, y);
+      text(`(${round(obj.v.x,2)}, ${round(-obj.v.y,2)})`, 350, y);
+      text(`(${round(obj.a.x,2)}, ${round(-obj.a.y,2)})`, 450, y);
+      text(`(${round(obj.adrag.x,2)}, ${round(-obj.adrag.y,2)})`, 550, y);
+      text(`(${round(obj.alift.x,2)}, ${round(-obj.alift.y,2)})`, 650, y);
+      text(obj.stop, 750, y);
     }
+  }
+}
+
+function keyPressed() {
+  if (keyCode == 32) {
+    paused = !paused;
+  } else if (keyCode == BACKSPACE) {
+    newSession();
   }
 }
 
@@ -84,7 +123,6 @@ function getDragAccel(velocity, drag_coeff=DRAG_COEFF, density=DENSITY, area=ARE
 
 
 class Ball {
-  
   constructor(id, pos, v, a, w, c, dragOn, liftOn) {
     this.pos = pos.copy();
     this.spos = p5.Vector.mult(pos, scl);
@@ -93,11 +131,11 @@ class Ball {
     this.a = a.copy();
     this.ai = a.copy();
     this.id = id;
+    this.stop = NaN;
     this.adrag = createVector(0,0);
     this.alift = createVector(0,0);
     this.w = w; // angular velocity omega
     this.lift_coeff = 0;
-    
     
     this.path = []
     this.c = c;
@@ -106,18 +144,22 @@ class Ball {
   }
   
   draw() {
+    noStroke();
     fill(this.c);
-    stroke(this.c);
-    this.move();
+    if (!this.stop) {
+      this.move();
+    }
     this.spos = p5.Vector.mult(this.pos, scl);
     this.path.push(this.spos)
+
+    stroke(this.c);
     for (let i=0; i< this.path.length; i++) {
         point(this.path[i].x, this.path[i].y);
     }
     ellipse(this.spos.x, this.spos.y, 10, 10);
-    line(this.spos.x, this.spos.y, this.spos.x, this.spos.y+9.8*10)
-    line(this.spos.x, this.spos.y, this.spos.x + this.adrag.x*10, this.spos.y + this.adrag.y*10)
-    line(this.spos.x, this.spos.y, this.spos.x + this.alift.x*10, this.spos.y + this.alift.y*10)
+    line(this.spos.x, this.spos.y, this.spos.x, this.spos.y+5*9.8)
+    line(this.spos.x, this.spos.y, this.spos.x + 5*this.adrag.x, this.spos.y + 5*this.adrag.y)
+    line(this.spos.x, this.spos.y, this.spos.x + 5*this.alift.x, this.spos.y + 5*this.alift.y)
   }
   
   move() {
@@ -135,20 +177,12 @@ class Ball {
     }
     
     
-    // Bounce when touch the edge of the canvas
-    if (this.pos.x < 0) {
-      this.pos.x=0
-    }
-    if (this.pos.y < 0) {
-      this.pos.y=0
-    }
-    if (this.pos.x > court.w) {
-      this.pos.x=court.w
-    }
+    // Stop when hit floor
     if (this.pos.y > court.h) {
-       this.v.setMag(0);
-       this.a.setMag(0);
-       this.pos.y = court.h;
+      if (!this.stop) {
+        this.stop = round(TIME,2);
+      }
+      this.pos.y = court.h;
     }
   }
 }
