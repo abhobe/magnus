@@ -3,7 +3,7 @@
 let scl = 40; // set viewport size
 let fr = 60; // 60hz display frequency
 
-let court = {w: 36, h: 5} // real-life court dims, scaled by scl
+let court = {w: 23.77, h: 5} // real-life court dims, scaled by scl
 
 // constants for drag
 let DENSITY = 1.293
